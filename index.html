@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tactical Strike</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #222;
+  }
+  #gameCanvas {
+    display: block;
+    background-color: #111;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const player = {
+  x: 400,
+  y: 550,
+  width: 40,
+  height: 40,
+  speed: 5,
+};
+
+const bullets = [];
+let targets = [];
+let currentLevel = 1;
+const maxLevels = 100;
+let gameOver = false;
+
+let keys = {};
+
+// Handle keyboard input
+document.addEventListener('keydown', (e) => { 
+  keys[e.key] = true; 
+  if (e.key === ' ' || e.key === 'Spacebar') {
+    // Shoot bullet
+    bullets.push({
+      x: player.x + player.width/2 - 5,
+      y: player.y,
+      width: 10,
+      height: 20,
+      speed: 7
+    });
+  }
+});
+document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+// Generate targets based on level
+function generateTargets(level) {
+  targets = [];
+  let numTargets = level + 4; // Increase number of targets each level
+  for (let i=0; i<numTargets; i++) {
+    targets.push({
+      x: Math.random() * 750 + 25,
+      y: Math.random() * 200 + 50,
+      width: 30,
+      height: 30,
+      alive: true
+    });
+  }
+}
+
+// Check collisions
+function checkCollisions() {
+  bullets.forEach((bullet, bIndex) => {
+    targets.forEach((target, tIndex) => {
+      if (target.alive && 
+          bullet.x < target.x + target.width &&
+          bullet.x + bullet.width > target.x &&
+          bullet.y < target.y + target.height &&
+          bullet.y + bullet.height > target.y) {
+        // Hit detected
+        target.alive = false;
+        bullets.splice(bIndex, 1);
+      }
+    });
+  });
+}
+
+// Game Loop
+function gameLoop() {
+  if (gameOver) {
+    ctx.fillStyle = 'white';
+    ctx.font = '48px Arial';
+    ctx.fillText('Game Over!', 300, 300);
+    ctx.font = '24px Arial';
+    ctx.fillText('Refresh to Restart', 330, 340);
+    return;
+  }
+
+  // Move player
+  if (keys['ArrowLeft'] && player.x > 0) {
+    player.x -= player.speed;
+  }
+  if (keys['ArrowRight'] && player.x + player.width < 800) {
+    player.x += player.speed;
+  }
+
+  // Clear canvas
+  ctx.clearRect(0, 0, 800, 600);
+
+  // Draw player
+  ctx.fillStyle = 'cyan';
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+
+  // Draw bullets
+  ctx.fillStyle = 'yellow';
+  bullets.forEach((bullet, index) => {
+    bullet.y -= bullet.speed;
+    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    // Remove off-screen bullets
+    if (bullet.y + bullet.height < 0) {
+      bullets.splice(index, 1);
+    }
+  });
+
+  // Draw targets
+  ctx.fillStyle = 'red';
+  targets.forEach(target => {
+    if (target.alive) {
+      ctx.fillRect(target.x, target.y, target.width, target.height);
+    }
+  });
+
+  // Check collisions
+  checkCollisions();
+
+  // Check if all targets are destroyed
+  if (targets.every(t => !t.alive)) {
+    if (currentLevel < maxLevels) {
+      currentLevel++;
+      generateTargets(currentLevel);
+    } else {
+      ctx.fillStyle = 'white';
+      ctx.font = '36px Arial';
+      ctx.fillText('Congratulations! You completed all levels!', 100, 300);
+      return;
+    }
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Initialize first level
+generateTargets(currentLevel);
+gameLoop();
+</script>
+</body>
+</html>
